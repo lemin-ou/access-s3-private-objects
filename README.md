@@ -14,11 +14,32 @@ Important: this application uses various AWS services and there are costs associ
 
 ## Deployment Instructions
 
-1. Clone the project to your local working directory
+1. Set the following necessary environment variables values (create .env file in the root of the project):
 
-   ```bash
-   git clone https://github.com/aws-samples/serverless-patterns
-   ```
+    `PREFIX`: prefix before all resources names created in AWS (current value: smartmssa-s3-object-access)
+
+    `RECORD_NAME`: the API DNS record
+
+    `DOMAIN_NAME`: the API DNS domain
+
+    `ACM_CERTIFICATE_ARN`: the API ACM certificate ARN
+
+    `ENVIRONMENT`: the environment (cuurent value: dev)
+
+    `CACHE_TTL`: Lambda authorizer default authorization cache
+
+    `BUCKETS`: buckets names where the Lambda function will have access to (this should be modified if developers need access to a new bucket), example: `BUCKETS=bucketone, buckettwo, bucketthree`
+
+    `HOSTED_ZONE_ID`: Hosted Zone ID of the DOMAINE_NAME (specified in the variable above)
+
+    `MAX_PROCESSED_OBJECTS`: Maximum number of objects that the Lambda can process at a time (current value: 10)
+
+    `AWS_S3_DEFAULT_REGION`: AWS region where all buckets reside (contact Operation Team to get current value)
+
+    `USERNAME`: username of the user who has authorization to call this API (contact Operation Team to get current value)
+
+    `PASSWORD`: password of the user who has authorization to call this API (contact Operation Team to get current value)
+
 
 2. Change the working directory to this pattern's directory
 
