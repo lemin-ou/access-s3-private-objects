@@ -2,5 +2,53 @@
   "hosted-zone:account=174391158959:domainName=smartdev.ai:region=us-east-1": {
     "Id": "/hostedzone/Z04331842LQ46AOPWE8LD",
     "Name": "smartdev.ai."
+  },
+  "vpc-provider:account=174391158959:filter.vpc-id=vpc-0b9387c38047cc170:region=eu-west-3:returnAsymmetricSubnets=true": {
+    "vpcId": "vpc-0b9387c38047cc170",
+    "vpcCidrBlock": "10.0.0.0/16",
+    "ownerAccountId": "174391158959",
+    "availabilityZones": [],
+    "subnetGroups": [
+      {
+        "name": "Public",
+        "type": "Public",
+        "subnets": [
+          {
+            "subnetId": "subnet-0416688a34a07f523",
+            "cidr": "10.0.64.0/19",
+            "availabilityZone": "eu-west-3a",
+            "routeTableId": "rtb-0a0f15dc94ae764cc"
+          },
+          {
+            "subnetId": "subnet-067ea3146576709d2",
+            "cidr": "10.0.96.0/19",
+            "availabilityZone": "eu-west-3b",
+            "routeTableId": "rtb-0a0f15dc94ae764cc"
+          }
+        ]
+      },
+      {
+        "name": "Private",
+        "type": "Private",
+        "subnets": [
+          {
+            "subnetId": "subnet-064e01ca280b4cf52",
+            "cidr": "10.0.0.0/19",
+            "availabilityZone": "eu-west-3a",
+            "routeTableId": "rtb-0588880bd7474ba1b"
+          },
+          {
+            "subnetId": "subnet-0b80027a6762c6cff",
+            "cidr": "10.0.32.0/19",
+            "availabilityZone": "eu-west-3b",
+            "routeTableId": "rtb-0588880bd7474ba1b"
+          }
+        ]
+      }
+    ]
+  },
+  "hosted-zone:account=174391158959:domainName=smartdev.ai:region=eu-west-3": {
+    "Id": "/hostedzone/Z04331842LQ46AOPWE8LD",
+    "Name": "smartdev.ai."
   }
 }

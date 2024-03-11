@@ -14,6 +14,8 @@ Important: this application uses various AWS services and there are costs associ
 
 ## Deployment Instructions
 
+ `current active git branch: s3-labmda-inter-vpc-communication`
+
 1. Set the following necessary environment variables values (create .env file in the root of the project):
 
     `PREFIX`: prefix before all resources names created in AWS (current value: smartmssa-s3-object-access)
@@ -40,20 +42,21 @@ Important: this application uses various AWS services and there are costs associ
 
     `PASSWORD`: password of the user who has authorization to call this API (contact Operation Team to get current value)
 
+    `VPC_ID`: The VPC to import, this VPC will be linked with the Lambda function. To allow inter-VPC communication from this VPC a new S3 Gateway Endpoint will be created.
 
-2. Change the working directory to this pattern's directory
-
-   ```bash
-   cd access-s3-private-objects
-   ```
-
-3. Install dependencies
+2. Install dependencies
 
    ```bash
    npm install
    ```
 
+3. Run cdk bootstrap
+
+   ```bash
+   cdk bootstrap
+
 4. Deploy the stack to your default AWS account and region. The output of this command should give you the HTTP API URL.
+
    ```bash
    cdk deploy
    ```
@@ -66,7 +69,7 @@ Using a Lambda Authorizer the credentials provided in the Authorization header a
 
 Run the following commands using the API endpoint.
 
-1. Using sam
+1. Using curl
 
    ```bash
    curl -u username:password '<protected api endpoint>'
