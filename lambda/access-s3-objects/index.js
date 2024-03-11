@@ -8,6 +8,7 @@ const {
 const NOT_FOUND = 404;
 const FORBIDDEN = 403;
 const SERVER_ERROR = 500;
+const PERMANENTLY_MOVED = 301;
 const BAD_REQUEST = 400;
 const MAX_PROCESSED_OBJECTS = process.env.MAX_PROCESSED_OBJECTS;
 const clientParams = { region: process.env.AWS_S3_DEFAULT_REGION };
@@ -50,9 +51,9 @@ exports.handler = async (event, context, callback) => {
 
     if (!res.exist) return sendErrorResponse(res.statusCode, res.reason);
 
-    preSignedUrl = await getTemporaryAccess(s3, params);
+    const preSignedUrlWrapper = await getTemporaryAccess(s3, params);
 
-    sendResponse(callback, preSignedUrl);
+    sendResponse(callback, preSignedUrlWrapper[objectKey]);
   }
   async function performPostOperation(event) {
     let res = checkRequired(event.pathParameters, ["bucketName"]);
@@ -62,36 +63,57 @@ exports.handler = async (event, context, callback) => {
     res = checkRequired(JSON.parse(event.body), ["objects"]);
     if (!res.exist) return sendErrorResponse(res.statusCode, res.reason);
     const { objects } = res;
-    if (Array.isArray(objects) && objects.length > MAX_PROCESSED_OBJECTS)
+    if (
+      objects &&
+      Array.isArray(objects) &&
+      objects.length > MAX_PROCESSED_OBJECTS
+    )
       return sendErrorResponse(
         BAD_REQUEST,
         `Sorry, but we can only process ${MAX_PROCESSED_OBJECTS} objects at a time`
       );
 
-    const processed = {};
-
+    let processed = {};
+    const promises = [];
+    const verifyPromises = [];
     for (var object of objects) {
-      res = await verifyObjectExistance(s3, {
+       verifyPromises.push(verifyObjectExistance(s3, {
         Bucket: bucketName,
         Key: object,
-      });
-      if (!res.exist) {
+      }))
+    }
+    
+    console.log("Verifying objects' existance....")
+    // verify objects existance
+    const verificationResults = await Promise.all(verifyPromises)
+   
+    for (var result of verificationResults) {
+      if (!result.exist) {
         // if we found an object with forbidden or server error status code, it means we don't have access to the bucket or an error occur
         // and an immediate response should be send to the clientƒ
-        if ([SERVER_ERROR, FORBIDDEN].includes(res.statusCode))
-          return sendErrorResponse(res.statusCode, res.reason);
-        processed[object] = res.reason;
+        if ([SERVER_ERROR, FORBIDDEN, PERMANENTLY_MOVED].includes(result.statusCode))
+          return sendErrorResponse(result.statusCode, result.reason);
+        processed[result.key] = result.reason;
       } else {
-        res = await getTemporaryAccess(s3, {
-          Bucket: bucketName,
-          Key: object,
-          expiresIn: process.env.CACHE_TTL * 60,
-        });
-        if (res.error) return sendErrorResponse(res.statusCode, res.reason);
-        processed[object] = res;
+        promises.push(
+          getTemporaryAccess(s3, {
+            Bucket: bucketName,
+            Key: result.key,
+            expiresIn: process.env.CACHE_TTL * 60,
+          })
+        );
       }
     }
-
+     try {
+      const urls = await Promise.all(promises);
+    processed = {...processed, ...urls.reduce((p, c) => ({...p,...c}) , {})};
+     } catch (error) {
+      if (error.error) return sendErrorResponse(error.statusCode, error.reason);
+      processed[error.key] = error;
+      delete processed[error.key].key
+  }
+    
+    
     sendResponse(callback, processed);
   }
 };
@@ -130,31 +152,36 @@ function checkRequired(holder, required) {
   console.debug("end: cheking required with success.");
   return { exist: true, ...values };
 }
-async function verifyObjectExistance(client, params) {
-  console.debug("begin: executing verifyObjectExistance ....", params);
+ async function verifyObjectExistance(client, params) {
+  return new Promise(async (resolve) => {
   const command = new HeadObjectCommand(params);
   try {
-    response = await client.send(command);
-    console.debug("end: executing verifyObjectExistance, response:", response);
-    return { exist: true };
+    const response = await client.send(command);
+    console.debug("executing verifyObjectExistance, response:", response);
+    resolve({ key: params.Key,  exist: true });
   } catch (error) {
-    console.error("end: executing verifyObjectExistance with errors:", error);
-    return { exist: false, ...mapErrorMessage(error.name) };
+    console.error("executing verifyObjectExistance with errors:", error);
+    resolve({ key: params.Key, exist: false, ...mapErrorMessage(error.name) });
   }
+  })
+  
 }
 
 async function getTemporaryAccess(client, params) {
-  console.debug("begin: executing getTemporaryAccess ....");
-  // get the presigned url from s3 client
-  try {
-    const command = new GetObjectCommand(params);
-    const response = await getSignedUrl(client, command, params);
-    console.debug("end: executing getTemporaryAccess, response: ", response);
-    return response;
-  } catch (error) {
-    console.debug("end: executing getTemporaryAccess, with errors : ", error);
-    return { error: true, ...mapErrorMessage("error.name") };
-  }
+  return new Promise(async (resolve, reject) => {
+    // get the presigned url from s3 client
+    try {
+      const command = new GetObjectCommand(params);
+      const response = {};
+      response[params.Key] = await getSignedUrl(client, command, params);
+      console.debug("executing getTemporaryAccess, response: ", response);
+
+      resolve(response);
+    } catch (error) {
+      console.debug("executing getTemporaryAccess, with errors : ", error);
+      reject({ key: params.Key, error: true, ...mapErrorMessage("error.name") });
+    }
+  });
 }
 
 function mapErrorMessage(errorName) {
