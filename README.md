@@ -88,8 +88,3 @@ Run the given command to delete the resources that were created. It might take s
 cdk destroy
 ```
 
----
-
-Copyright 2023 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-
-SPDX-License-Identifier: MIT-0
